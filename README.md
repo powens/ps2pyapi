@@ -20,6 +20,7 @@ import ps2pyapi and create a wrapper object by creating an instance of PS2Api. T
 ps2pyapi.Helper contains a (currently) small set of helper functions, including caching weapon and vehicle id to name resolutions.
 
 Here is a small example:
+```python
 		import ps2pyapi
 		api = ps2pyapi.PS2Api()
 		
@@ -38,6 +39,7 @@ Here is a small example:
             charId = character.get(["id"])
             
 			print("[" + outfit + "]" + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
+```
 
 Version History
 ---------------
