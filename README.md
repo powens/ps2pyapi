@@ -21,24 +21,26 @@ ps2pyapi.Helper contains a (currently) small set of helper functions, including 
 
 Here is a small example:
 ```python
-		import ps2pyapi
-		api = ps2pyapi.PS2Api()
+import ps2pyapi
+api = ps2pyapi.PS2Api()
 		
-		query = api.rawTextApiQuery("character", "get", None, "name.first_lower=torokokill&c:show=name.first,type.faction,id&c:resolve=online_status,outfit")
+query = api.rawTextApiQuery("character", "get", None, "name.first_lower=torokokill&c:show=name.first,type.faction,id&c:resolve=online_status,outfit")
         
-		if query.exists(["character_list", 0]):
-            character = query.get(["character_list", 0])
-            name = character.get(["name", "first"])
-            outfit = None
-            try:
-                outfit = character.get(["outfit", "alias"])
-            except ps2pyapi.ArgNotFoundException:
-                pass
-            faction = character.get(["type", "faction"])
-            isOnline = character.get(["online_status"])
-            charId = character.get(["id"])
+if query.exists(["character_list", 0]):
+    character = query.get(["character_list", 0])
+    name = character.get(["name", "first"])
+    outfit = None
+    outfitStr = ""
+    try:
+        outfit = character.get(["outfit", "alias"])
+        outfitStr = "[" + outfit + "]"
+    except ps2pyapi.ArgNotFoundException:
+        pass
+    faction = character.get(["type", "faction"])
+    isOnline = character.get(["online_status"])
+    charId = character.get(["id"])
             
-			print("[" + outfit + "]" + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
+    print(outfitStr + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
 ```
 
 Version History
