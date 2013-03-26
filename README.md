@@ -29,18 +29,16 @@ query = api.rawTextApiQuery("character", "get", None, "name.first_lower=torokoki
 if query.exists(["character_list", 0]):
     character = query.get(["character_list", 0])
     name = character.get(["name", "first"])
-    outfit = None
-    outfitStr = ""
+    outfit = ""
     try:
-        outfit = character.get(["outfit", "alias"])
-        outfitStr = "[" + outfit + "]"
+        outfit = "[" + character.get(["outfit", "alias"]) + "]"
     except ps2pyapi.ArgNotFoundException:
         pass
     faction = character.get(["type", "faction"])
     isOnline = character.get(["online_status"])
     charId = character.get(["id"])
             
-    print(outfitStr + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
+    print(outfit + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
 ```
 
 Version History
