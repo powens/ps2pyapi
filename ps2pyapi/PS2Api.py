@@ -184,7 +184,7 @@ class PS2Api(object):
         s = s.replace(" ", "%20")
         return s
     
-    def getTextWithRetry(self, collection, action="getChild", identifier=None, modifier=None, retryTimeSec=5):
+    def getTextWithRetry(self, collection, action="get", identifier=None, modifier=None, retryTimeSec=5):
         '''
         Performs a text api query. Will continually retry with a configurable retry sleep time until the query succeeds.
         '''
@@ -204,7 +204,7 @@ class PS2Api(object):
             except:
                 time.sleep(retryTimeSec)
     
-    def textApiQuery(self, collection, action="getChild", identifier=None, modifiers=None):
+    def textApiQuery(self, collection, action="get", identifier=None, modifiers=None):
         '''
         Sends a 
         '''
@@ -215,7 +215,7 @@ class PS2Api(object):
         Sends a raw image call to the API. Returns the Image wrapped in a ImageQuery object if the query succeeds.
         
         Parameters:
-            collection -- Which collection to getChild info from
+            collection -- Which collection to get info from
             identifier -- Used to refine some queries, for example passing a character id with the character collection
             imageType -- Type of image to return
         
@@ -229,14 +229,14 @@ class PS2Api(object):
         timeEnd = time.time()
         return ImgQuery(queryUrl, s, timeEnd - timeStart)
         
-    def rawTextApiQuery(self, collection, action="getChild", identifier=None, modifiers=None):
+    def rawTextApiQuery(self, collection, action="get", identifier=None, modifiers=None):
         '''
         Sends makes a request for json data to the API. Returns the JSON object wrapped in a TextQuery object if the query succeeds.
         Raw queries use a raw string of modifiers rather than a nice list
         
         Parameters:
-            collection -- Which collection to getChild info from
-            action -- use "getChild" to getChild information, "count" to return the number of records
+            collection -- Which collection to get info from
+            action -- use "get" to get information, "count" to return the number of records
             identifier -- used to refine some queries, for example passing a character id with the character collection
             modifiers -- all the query modifiers, joined by &
         '''
