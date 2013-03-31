@@ -50,5 +50,6 @@ Version History
 ---------------
 0.0.2:
 *	Added caching, lots of refactoring done to unify terminology and make it easier to understand the code.
+
 0.0.1:
 *	Initial version on Github
