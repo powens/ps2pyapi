@@ -6,7 +6,7 @@
     
 '''
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
-from .PS2Api import (PS2Api, ArgNotFoundException)
+from .PS2Api import (PS2Api, ChildNotFoundException)
 from .Helper import Helper

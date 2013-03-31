@@ -9,12 +9,13 @@ import json
 import sys
 import time
 import logging
+import hashlib
 
 log = logging.getLogger(__name__)
 
-class ArgNotFoundException(Exception):
+class ChildNotFoundException(Exception):
     '''
-    ArgNotFoundException: Thrown whenever TextQuery.get() encounters an arg that doesn't exists
+    ChildNotFoundException: Thrown whenever TextQuery.getChild() encounters an arg that doesn't childExists
     
     Parameters:
         msg: A small message stating which arg in the list is invalid
@@ -86,40 +87,40 @@ class TextQuery(object):
         '''
         return self.json == None
     
-    def exists(self, args):
+    def childExists(self, children):
         '''
         Checks to see if the supplied child inside the JSON object exists. Returns True if it does.
         Parameters:
-            args: A list of args
+            children: A list of children
         '''
         try:
-            self.get(args)
+            self.getChild(children)
             return True
-        except ArgNotFoundException:
+        except ChildNotFoundException:
             return False
  
-    def get(self, args):
+    def getChild(self, children):
         '''
-        Drills down into the JSON object finding a child located at args, throws an ArgNotFoundException if any arg in the list doesn't exist
+        Drills down into the JSON object finding a child located at children, throws an ChildNotFoundException if any child in the list doesn't exist
         Returns: 
             If the object is a list or a dictionary, returns a the object wrapped in it's own TextQuery class
             If the object is anything else, return the object itself
         
         Parameters:
-            args: A list of args
+            children: A list of children
         '''   
-        #Throw the args in a list if there is only one arg not in a list
-        if type(args) is not list:
-            args = [args] 
+        #Throw the children in a list if there is only one child not in a list
+        if type(children) is not list:
+            children = [children] 
         currentObj = self.json
         
-        #Iterate through the list of args, drilling down into the JSON object
-        #Raise an exception if an arg is missing
-        for arg in args:
-            if (type(arg) is int and type(currentObj) is list and len(currentObj) > arg) or arg in currentObj:
-                currentObj = currentObj[arg]
+        #Iterate through the list of children, drilling down into the JSON object
+        #Raise an exception if an child is missing
+        for child in children:
+            if (type(child) is int and type(currentObj) is list and len(currentObj) > child) or child in currentObj:
+                currentObj = currentObj[child]
             else:
-                raise ArgNotFoundException(str(arg) + " not found in " + str(args), self.queryUrl)
+                raise ChildNotFoundException(str(child) + " not found in " + str(children), self.queryUrl)
         
         #If the object at the end of the chain is a dict or a list, wrap the object in a TextQuery object. Return it. 
         if type(currentObj) is dict or type(currentObj) is list:
@@ -149,6 +150,14 @@ class PS2Api(object):
         self.logging = log
         if log:
             logging.basicConfig(filename="ps2api.log", level=logging.DEBUG)
+            
+    def buildCollectionList(self):
+        collectionQuery = self.rawTextApiCall("")
+        collections = collectionQuery.getInfo(["datatype_list"])
+        collectionList = []
+        for collection in collections.json:
+            collectionList.append(collection["name"])
+        self.collections = collectionList
     
     def setServiceId(self, serviceId):
         '''
@@ -175,13 +184,13 @@ class PS2Api(object):
         s = s.replace(" ", "%20")
         return s
     
-    def getTextWithRetry(self, collection, action="get", identifier=None, args=None, retryTimeSec=5):
+    def getTextWithRetry(self, collection, action="getChild", identifier=None, modifier=None, retryTimeSec=5):
         '''
         Performs a text api query. Will continually retry with a configurable retry sleep time until the query succeeds.
         '''
         while True:
             try:
-                return self.rawTextApiQuery(collection, action, identifier, args)
+                return self.rawTextApiQuery(collection, action, identifier, modifier)
             except:
                 time.sleep(retryTimeSec)
                 
@@ -195,18 +204,18 @@ class PS2Api(object):
             except:
                 time.sleep(retryTimeSec)
     
-    def textApiQuery(self, collection, action="get", identifier=None, args=None):
-        pass
-    
-    def imgApiQuery(self, collection, identifier, imageType=None):
-        pass
+    def textApiQuery(self, collection, action="getChild", identifier=None, modifiers=None):
+        '''
+        Sends a 
+        '''
+        return self.rawTextApiQuery(collection, action, identifier, self._buildModifierString(modifiers))
     
     def rawImgApiQuery(self, collection, identifier, imageType=None):
         '''
         Sends a raw image call to the API. Returns the Image wrapped in a ImageQuery object if the query succeeds.
         
         Parameters:
-            collection -- Which collection to get info from
+            collection -- Which collection to getChild info from
             identifier -- Used to refine some queries, for example passing a character id with the character collection
             imageType -- Type of image to return
         
@@ -220,22 +229,23 @@ class PS2Api(object):
         timeEnd = time.time()
         return ImgQuery(queryUrl, s, timeEnd - timeStart)
         
-    def rawTextApiQuery(self, collection, action="get", identifier=None, args=None):
+    def rawTextApiQuery(self, collection, action="getChild", identifier=None, modifiers=None):
         '''
-        Sends a raw json call to the API. Returns the JSON object wrapped in a TextQuery object if the query succeeds. 
+        Sends makes a request for json data to the API. Returns the JSON object wrapped in a TextQuery object if the query succeeds.
+        Raw queries use a raw string of modifiers rather than a nice list
         
         Parameters:
-            collection -- Which collection to get info from
-            action -- use "get" to get information, "count" to return the number of records
+            collection -- Which collection to getChild info from
+            action -- use "getChild" to getChild information, "count" to return the number of records
             identifier -- used to refine some queries, for example passing a character id with the character collection
-            args -- all the query modifiers, joined by &
+            modifiers -- all the query modifiers, joined by &
         '''
         #Construct the query string URL
         queryUrl = self._constructBaseQueryString() + "/" + self.sanitize(action) + "/" + self.namespace + "/" + self.sanitize(collection)
         if identifier:
             queryUrl += "/" + self.sanitize(identifier)
-        if args:
-            queryUrl += "?" + self.sanitize(args) 
+        if modifiers:
+            queryUrl += "?" + self.sanitize(modifiers) 
         
         #Request make the URL request and wrap the returned JSON object inside a TextQuery class
         timeStart = time.time()
@@ -245,7 +255,7 @@ class PS2Api(object):
     
     def _makeUrlRequest(self, queryString):
         '''
-        Sends a request off to the API. Rethrows a ton of exceptions
+        Sends a request off to the API. Logs and rethrows a ton of exceptions
         
         Parameters:
             queryString: URL to query
@@ -280,16 +290,19 @@ class PS2Api(object):
             
         return queryString
     
-    def buildArgsString(self, args):
-        argStr = ""
-        for k,v in args.items():
+    def _getCachefilename(self, filename):
+        return hashlib.md5(filename.encode()).hexdigest()
+    
+    def _buildModifierString(self, modifierList):
+        modifierStr = ""
+        for k,v in modifierList.items():
             if k in PS2Api.validQueryArgs:
-                argStr += "&c:" + k + "="
+                modifierStr += "&c:" + k + "="
             else:
-                argStr += "&" + k + "="
+                modifierStr += "&" + k + "="
                 
-            argStr += ','.join(v)
-        return argStr[1:]
+            modifierStr += ','.join(v)
+        return modifierStr[1:]
                     
 
 
