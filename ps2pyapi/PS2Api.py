@@ -7,9 +7,11 @@ Created on Mar 11, 2013
 import urllib.request
 import json
 import sys
+import os
 import time
 import logging
 import hashlib
+import pickle
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +138,7 @@ class PS2Api(object):
     validQueryArgs = ["start","limit","show","hide","sort","has","resolve","case"]
     validModifiers = ["!", "[", "<", "]", ">", "^", "*"]
 
-    def __init__(self, serviceId=None, namespace="ps2-beta", log=False):
+    def __init__(self, serviceId=None, namespace="ps2-beta", log=False, cacheDirectory="./cache"):
         '''
         Constructor. Sets serviceId and namespace.
         
@@ -144,14 +146,22 @@ class PS2Api(object):
             serviceId: The service id to use for all queries. Can be set to None to use no service id, as it is not currently required. The starting s: not required
             namespace: The namespace to query from. Defaults to ps2-beta as it is the recommended namespace to use
             logging: Enables or disables logging of queries and any exceptions that are raised from the queries
+            cacheDirectory: Directory to use to cache api results. Use None to not use any caching
         '''
         self.setServiceId(serviceId)
         self.namespace = namespace
         self.logging = log
         if log:
             logging.basicConfig(filename="ps2api.log", level=logging.DEBUG)
+        self.cacheDirectory = cacheDirectory
+        if cacheDirectory:
+            if not os.path.exists(cacheDirectory):
+                os.makedirs(cacheDirectory)
             
     def buildCollectionList(self):
+        '''
+        Queries the API for a list of collections, returning that list
+        '''
         collectionQuery = self.rawTextApiCall("")
         collections = collectionQuery.getInfo(["datatype_list"])
         collectionList = []
@@ -184,99 +194,153 @@ class PS2Api(object):
         s = s.replace(" ", "%20")
         return s
     
-    def getTextWithRetry(self, collection, action="get", identifier=None, modifier=None, retryTimeSec=5):
+    def getTextWithRetry(self, collection, action="get", identifier=None, modifier=None, cacheTimeSec=-1, retryTimeSec=5):
         '''
         Performs a text api query. Will continually retry with a configurable retry sleep time until the query succeeds.
         '''
         while True:
             try:
-                return self.rawTextApiQuery(collection, action, identifier, modifier)
+                return self.textApiQuery(collection, action, identifier, modifier, cacheTimeSec)
             except:
                 time.sleep(retryTimeSec)
                 
-    def getImgWithRetry(self, collection, identifier, imageType=None, retryTimeSec=5):
+    def getImgWithRetry(self, collection, identifier, imageType=None, cacheTimeSec=-1, retryTimeSec=5):
         '''
         Performs an img api query. Will continually retry with a configurable retry sleep time until the query succeeds.
         '''
         while True:
             try:
-                return self.rawImgApiQuery(collection, identifier, imageType)
+                return self.rawImgApiQuery(collection, identifier, imageType, cacheTimeSec)
             except:
                 time.sleep(retryTimeSec)
     
-    def textApiQuery(self, collection, action="get", identifier=None, modifiers=None):
-        '''
-        Sends a 
-        '''
-        return self.rawTextApiQuery(collection, action, identifier, self._buildModifierString(modifiers))
-    
-    def rawImgApiQuery(self, collection, identifier, imageType=None):
+    def rawImgApiQuery(self, collection, identifier, imageType=None, cacheTimeSec=-1):
         '''
         Sends a raw image call to the API. Returns the Image wrapped in a ImageQuery object if the query succeeds.
         
         Parameters:
-            collection -- Which collection to get info from
-            identifier -- Used to refine some queries, for example passing a character id with the character collection
-            imageType -- Type of image to return
+            collection: Which collection to get info from
+            identifier: Used to refine some queries, for example passing a character id with the character collection
+            imageType: Type of image to return
+            cacheTimeSec: 
+                If greater than 0, check to see if the age of the cache is younger than this. If it is, use the cache instead
+                If equal to 0, always use the cached version if it exists
+                If less than 0, never use the cache   
         
         '''
         queryUrl = self._constructBaseQueryString() + "/img/" + self.namespace + "/" + self.sanitize(collection) + "/" + self.sanitize(identifier)
         if imageType:
             queryUrl += "/" + imageType
+            
+        #Check the cache
+        cacheFilename = None
+        if (self.cacheDirectory is not None) and (cacheTimeSec >= 0):
+            #Check to see if the cache file either exists or the cache has expired
+            cacheFilename = self.cacheDirectory + "/" + self._getCachefilename(queryUrl)
+            try:
+                with open(cacheFilename, "rb") as f:
+                    #File exists, check it's date and return the cached file
+                    st = os.stat(cacheFilename)
+                    mtime = st.st_mtime
+                    currentTime = time.time()
+                    if (currentTime - mtime) < cacheTimeSec:
+                        return pickle.load(f)
+            except IOError:
+                pass
         
+        #Perform the query, wrap it inside an ImgQuery object
         timeStart = time.time()
         s = self._makeUrlRequest(queryUrl)
         timeEnd = time.time()
-        return ImgQuery(queryUrl, s, timeEnd - timeStart)
+        query = ImgQuery(queryUrl, s, timeEnd - timeStart)
         
-    def rawTextApiQuery(self, collection, action="get", identifier=None, modifiers=None):
+        #If caching is enabled and we have a cache time, cache the query
+        if cacheFilename is not None:
+            with open(cacheFilename, "wb+") as f:
+                pickle.dump(query, f)
+        return query
+        
+        return query
+        
+    def textApiQuery(self, collection, action="get", identifier=None, modifiers=None, cacheTimeSec=-1):
         '''
         Sends makes a request for json data to the API. Returns the JSON object wrapped in a TextQuery object if the query succeeds.
         Raw queries use a raw string of modifiers rather than a nice list
         
         Parameters:
-            collection -- Which collection to get info from
-            action -- use "get" to get information, "count" to return the number of records
-            identifier -- used to refine some queries, for example passing a character id with the character collection
-            modifiers -- all the query modifiers, joined by &
+            collection: Which collection to get info from
+            action: Use "get" to get information, "count" to return the number of records
+            identifier: Used to refine some queries, for example passing a character id with the character collection
+            modifiers: All the query modifiers. Can either be a raw string of modifiers, or a list
+            cacheTimeSec: 
+                If greater than 0, check to see if the age of the cache is younger than this. If it is, use the cache instead
+                If equal to 0, always use the cached version if it exists
+                If less than 0, never use the cache        
         '''
         #Construct the query string URL
         queryUrl = self._constructBaseQueryString() + "/" + self.sanitize(action) + "/" + self.namespace + "/" + self.sanitize(collection)
         if identifier:
             queryUrl += "/" + self.sanitize(identifier)
         if modifiers:
-            queryUrl += "?" + self.sanitize(modifiers) 
+            if type(modifiers) is list:
+                queryUrl += "?" + self._buildModifierString(modifiers)
+            else:
+                queryUrl += "?" + self.sanitize(modifiers) 
+              
+        #Check the cache
+        cacheFilename = None
+        if (self.cacheDirectory is not None) and (cacheTimeSec >= 0):
+            #Check to see if the cache file either exists or the cache has expired
+            cacheFilename = self.cacheDirectory + "/" + self._getCachefilename(queryUrl)
+            try:
+                with open(cacheFilename, "rb") as f:
+                    #File exists, check it's date and return the cached file
+                    st = os.stat(cacheFilename)
+                    mtime = st.st_mtime
+                    currentTime = time.time()
+                    if (currentTime - mtime) < cacheTimeSec:
+                        return pickle.load(f)
+            except IOError:
+                pass
+        #elif (self.cacheDirectory is None) or (cacheTimeSec < 0):
         
         #Request make the URL request and wrap the returned JSON object inside a TextQuery class
         timeStart = time.time()
         s = self._makeUrlRequest(queryUrl)
         timeEnd = time.time()
-        return TextQuery(queryUrl, json.loads(s.decode("utf-8")), timeEnd - timeStart)
-    
+        query = TextQuery(queryUrl, json.loads(s.decode("utf-8")), timeEnd - timeStart)
+        
+        #If caching is enabled and we have a cache time, cache the query
+        if cacheFilename is not None:
+            with open(cacheFilename, "wb+") as f:
+                pickle.dump(query, f)
+        return query
+            
     def _makeUrlRequest(self, queryString):
         '''
         Sends a request off to the API. Logs and rethrows a ton of exceptions
         
         Parameters:
-            queryString: URL to query
+            queryString -- URL to query
         '''
-        log.debug("API: %s", queryString)
+        log.debug("Sending request: %s", queryString)
         try:
             with urllib.request.urlopen(queryString) as url:
                 s = url.read()
                 if s == None:
+                    #This should never happen
                     log.debug("s is None")
                     raise Exception("s is None")
                 return s
         except urllib.error.HTTPError as err:
-            log.debug("API HTTP ERROR: " + str(err.code) + " " + err.msg)
+            log.debug("API HTTPError: " + str(err.code) + " " + err.msg)
             raise
         except urllib.error.URLError as err:
-            log.debug("URLError " + str(err))
+            log.debug("API URLError " + str(err))
             raise
         except:
             e = sys.exc_info()[0]
-            logging.debug("GenericError: " + str(e))
+            logging.debug("API GenericError: " + str(e))
             raise
     
         
@@ -291,11 +355,28 @@ class PS2Api(object):
         return queryString
     
     def _getCachefilename(self, filename):
+        '''
+        Takes a filename(without a directory) and returns an md5 hash of it
+        
+        Paramters:
+            filename -- Name of the file to hash
+        '''
         return hashlib.md5(filename.encode()).hexdigest()
     
     def _buildModifierString(self, modifierList):
+        '''
+        Builds a modifier query string from a list. 
+        For example: 
+            Turns {"start":["10"], "resolve":["tuhtles(name,nope),stuff"],"name.lower":["torokokill"]}
+            Into c:start=10&c:resolve=tuhtles(name,nope),stuff&name.lower=torokokill
+            
+        Parameters:
+            modifierList -- List of modifiers to turn into a string
+        '''
         modifierStr = ""
         for k,v in modifierList.items():
+            k = self.sanitize(k)
+            v = self.sanitize(v)
             if k in PS2Api.validQueryArgs:
                 modifierStr += "&c:" + k + "="
             else:
