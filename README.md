@@ -26,20 +26,25 @@ api = ps2pyapi.PS2Api()
 		
 query = api.rawTextApiQuery("character", "get", None, "name.first_lower=torokokill&c:show=name.first,type.faction,id&c:resolve=online_status,outfit")
         
-if query.exists(["character_list", 0]):
-    character = query.get(["character_list", 0])
-    name = character.get(["name", "first"])
+if query.childExists(["character_list", 0]):
+    character = query.getChild(["character_list", 0])
+    name = character.getChild(["name", "first"])
     outfit = ""
     try:
-        outfit = "[" + character.get(["outfit", "alias"]) + "]"
-    except ps2pyapi.ArgNotFoundException:
+        outfit = "[" + character.getChild(["outfit", "alias"]) + "]"
+    except ps2pyapi.ChildNotFoundException:
         pass
-    faction = character.get(["type", "faction"])
-    isOnline = character.get(["online_status"])
-    charId = character.get(["id"])
+    faction = character.getChild(["type", "faction"])
+    isOnline = character.getChild(["online_status"])
+    charId = character.getChild(["id"])
             
     print(outfit + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
 ```
+
+TODO
+----
+* Caching
+* A nicer way to deal with modifier strings
 
 Version History
 ---------------
