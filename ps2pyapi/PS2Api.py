@@ -80,7 +80,7 @@ class TextQuery(object):
         i = 0
         valuesLen = len(values)
         while i < valuesLen:
-            yield TextQuery(self.queryUrl, values[i])
+            yield TextQuery(self.queryUrl, values[i], self.time)
             i = i+1
             
     def __len__(self):
