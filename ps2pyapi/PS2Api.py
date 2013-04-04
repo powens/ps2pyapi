@@ -81,7 +81,10 @@ class TextQuery(object):
         valuesLen = len(values)
         while i < valuesLen:
             yield TextQuery(self.queryUrl, values[i])
-            i = i+1    
+            i = i+1
+            
+    def __len__(self):
+        return len(self.json)     
     
     def isNone(self):
         '''

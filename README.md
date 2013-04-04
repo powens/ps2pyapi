@@ -15,7 +15,7 @@ To use, just copy the ps2pyapi directory wherever you like.
 Getting Started
 ---------------
 
-import ps2pyapi and create a wrapper object by creating an instance of PS2Api. To perform a text based query, PS2Api::textApiQuery(). Use PS2Api::imgApiQuery() to query for images. The returned queries are wrapped inside of TextQuery and ImgQuery objects respectively. TextQuery objects are iterable, and will iterate on the top level container. To obtain child objects, TextQuery::childExists() will check if such a child exists and TextQuery::getChild() will get the child object, wrapped inside it's own TextQuery object.
+**import ps2pyapi** create a wrapper object by creating an instance of **PS2Api**. To perform a text based query, **PS2Api::textApiQuery()**. Use **PS2Api::imgApiQuery()** to query for images. The returned queries are wrapped inside of TextQuery and ImgQuery objects respectively. TextQuery objects are iterable, and will iterate on the top level container. To obtain child objects, TextQuery::childExists() will check if such a child exists and TextQuery::getChild() will get the child object, wrapped inside it's own TextQuery object.
 
 ps2pyapi.Helper contains a (currently) small set of helper functions, including caching weapon and vehicle id to name resolutions.
 
@@ -36,15 +36,14 @@ if query.childExists(["character_list", 0]):
         pass
     faction = character.getChild(["type", "faction"])
     isOnline = character.getChild(["online_status"])
-    charId = character.getChild(["id"])
             
     print(outfit + name + " fights for " + faction.upper() + " and is " + ("online" if isOnline != "0" else "offline"))
 ```
 
 TODO
 ----
-* Caching
-* A nicer way to deal with modifier strings
+- [x] Caching
+- [ ] A nicer way to deal with modifier strings
 
 Version History
 ---------------
