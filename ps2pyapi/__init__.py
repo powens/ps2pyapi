@@ -6,7 +6,7 @@
     
 '''
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 from .PS2Api import (PS2Api, ChildNotFoundException)
 from .Helper import Helper

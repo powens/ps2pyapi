@@ -302,7 +302,10 @@ class PS2Api(object):
                     mtime = st.st_mtime
                     currentTime = time.time()
                     if (currentTime - mtime) < cacheTimeSec:
-                        return pickle.load(f)
+                        cachedFile = pickle.load(f)
+                        if cachedFile.queryUrl == queryUrl:
+                            #In case of hash collision, double check to make this url of the cached query is the one we want
+                            return cachedFile 
             except IOError:
                 pass
         #elif (self.cacheDirectory is None) or (cacheTimeSec < 0):
