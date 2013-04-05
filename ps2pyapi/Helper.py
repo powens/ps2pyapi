@@ -21,9 +21,9 @@ class Helper(object):
             
         if lookupId not in cache:
             query = api.textApiQuery(lookupFailCollection, "get", lookupId, lookupFailModifier)
-            if len(query.get([lookupFailInfoLocation[0]]).json) == 0: 
+            if len(query.getChild([lookupFailInfoLocation[0]]).json) == 0: 
                 return "Unknown"
-            cache[lookupId] = query.get(lookupFailInfoLocation)
+            cache[lookupId] = query.getChild(lookupFailInfoLocation)
             with open(cacheFileName, "wb+") as f:
                 pickle.dump(cache, f)
         
