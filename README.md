@@ -8,16 +8,16 @@ Python API wrapper for the Planetside 2 stats API
 Installation
 ------------
 
-ps2pyapi was requires Python version 3.3.
+ps2pyapi requires Python version 3.3.
 
 To use, just copy the ps2pyapi directory wherever you like.
 
 Getting Started
 ---------------
 
-**import ps2pyapi** create a wrapper object by creating an instance of **PS2Api**. To perform a text based query, **PS2Api::textApiQuery()**. Use **PS2Api::imgApiQuery()** to query for images. The returned queries are wrapped inside of TextQuery and ImgQuery objects respectively. TextQuery objects are iterable, and will iterate on the top level container. To obtain child objects, TextQuery::childExists() will check if such a child exists and TextQuery::getChild() will get the child object, wrapped inside it's own TextQuery object.
+Begin with **import ps2pyapi**. Create a wrapper object by creating an instance of **PS2Api**. To perform a text based query, **PS2Api::textApiQuery()**. Use **PS2Api::imgApiQuery()** to query for images. The returned queries are wrapped inside of TextQuery and ImgQuery objects respectively. TextQuery objects are iterable, and will iterate on the top level container. To obtain child objects, TextQuery::childExists() will check if such a child exists and TextQuery::getChild() will get the child object, wrapped inside it's own TextQuery object.
 
-ps2pyapi.Helper contains a (currently) small set of helper functions, including caching weapon and vehicle id to name resolutions.
+ps2pyapi.Helper contains a (currently) small set of helper functions, including having a cache of weapon and vehicle id to name resolutions.
 
 Here is a small example:
 ```python
@@ -47,6 +47,10 @@ TODO
 
 Version History
 ---------------
+0.0.3:
+*   Updated the default namespace to ps2:v1
+*   Added some better query error handling inside of TextQuery.
+
 0.0.2:
 *	Added caching, lots of refactoring done to unify terminology and make it easier to understand the code.
 

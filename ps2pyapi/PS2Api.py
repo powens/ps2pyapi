@@ -1,6 +1,8 @@
 '''
 Created on Mar 11, 2013
 
+Version 0.0.3
+
 @author: Torokokill
 '''
 
@@ -63,6 +65,9 @@ class TextQuery(object):
         self.json = json
         self.queryUrl = queryUrl
         self.time = time
+        self.fromCache = False
+        if self.childExists("error") or self.childExists("errorCode"):
+            self.isError = True
     
     def __iter__(self):
         '''
@@ -83,6 +88,19 @@ class TextQuery(object):
             yield TextQuery(self.queryUrl, values[i], self.time)
             i = i+1
             
+    def getErrorString(self):
+        '''
+        Helper function to return all error information from the Query
+        '''
+        msg = ""
+        if self.childExists("errorCode"):
+            msg += self.getChild("errorCode") + " - "
+            
+        if self.childExists("errorMesage"):
+            msg += self.getChild("errorMessage")
+        
+        return msg
+    
     def __len__(self):
         return len(self.json)     
     
@@ -141,7 +159,7 @@ class PS2Api(object):
     validQueryArgs = ["start","limit","show","hide","sort","has","resolve","case"]
     validModifiers = ["!", "[", "<", "]", ">", "^", "*"]
 
-    def __init__(self, serviceId=None, namespace="ps2-beta", log=False, cacheDirectory="./cache"):
+    def __init__(self, serviceId=None, namespace="ps2:v1", log=False, cacheDirectory="./cache"):
         '''
         Constructor. Sets serviceId and namespace.
         
@@ -305,6 +323,7 @@ class PS2Api(object):
                         cachedFile = pickle.load(f)
                         if cachedFile.queryUrl == queryUrl:
                             #In case of hash collision, double check to make this url of the cached query is the one we want
+                            cachedFile.fromCache = True
                             return cachedFile 
             except IOError:
                 pass
