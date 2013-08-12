@@ -1,7 +1,7 @@
 '''
 Created on Mar 11, 2013
 
-Version 0.0.3
+Version 0.0.4
 
 @author: Torokokill
 '''
@@ -43,10 +43,11 @@ class ImgQuery(object):
         self.data = data
         self.queryUrl = queryUrl
         self.time = time
-        
-    def saveToDisk(self, filename):
+    
+     
+    def saveToFile(self, filename):
         '''
-        Write the image to disk with the given filename
+        Write the image to file with the given filename
         
         Parameters:
             filename: The filename to save 
@@ -87,7 +88,10 @@ class TextQuery(object):
         while i < valuesLen:
             yield TextQuery(self.queryUrl, values[i], self.time)
             i = i+1
-            
+    
+    def __len__(self):
+        return len(self.json)
+    
     def getErrorString(self):
         '''
         Helper function to return all error information from the Query
@@ -99,16 +103,24 @@ class TextQuery(object):
         if self.childExists("errorMesage"):
             msg += self.getChild("errorMessage")
         
-        return msg
-    
-    def __len__(self):
-        return len(self.json)     
+        return msg     
     
     def isNone(self):
         '''
         Returns True if the JSON object encapsulated is equal to None
         '''
         return self.json == None
+    
+    def getChildIfExists(self, children):
+        '''
+        A lazy function. First checks if the child object exists. If it does, return it. Else return None.
+        Parameters:
+            children: A list of children
+        '''
+        if self.childExists(children):
+            return self.getChild(children)
+        else:
+            return None 
     
     def childExists(self, children):
         '''
@@ -151,12 +163,29 @@ class TextQuery(object):
         else:    
             return currentObj
         
+    def findChildWithField(self, fieldName, fieldValue):
+        '''
+        Searches for a child that has a specific field with a specified value, returns the child if it has it. Returns None if no child is found.
+        Returns:
+            If the object has a child with a fieldName equal to fieldValue, returns that child
+            Else, returns None
+            
+        Parameters:
+            fieldName: The name of the field to search for
+            fieldValue: The value of the field to search for
+        '''
+        for i in self:
+            if i.childExists(fieldName):
+                if i.getChild(fieldName) == fieldValue:
+                    return i
+        
+        return None
 
 class PS2Api(object):
     '''
     The API wrapper. Queries the API for info and returns the results wrapped in TextQuery and ImgQuery objects
     '''
-    validQueryArgs = ["start","limit","show","hide","sort","has","resolve","case"]
+    validQueryArgs = ["start","limit","show","hide","sort","has","resolve","case", "limitPerDB", "includeNull", "lang", "join", "tree"]
     validModifiers = ["!", "[", "<", "]", ">", "^", "*"]
 
     def __init__(self, serviceId=None, namespace="ps2:v1", log=False, cacheDirectory="./cache"):
@@ -303,10 +332,7 @@ class PS2Api(object):
         if identifier:
             queryUrl += "/" + self.sanitize(identifier)
         if modifiers:
-            if type(modifiers) is list:
-                queryUrl += "?" + self._buildModifierString(modifiers)
-            else:
-                queryUrl += "?" + self.sanitize(modifiers) 
+            queryUrl += "?" + self.sanitize(modifiers) 
               
         #Check the cache
         cacheFilename = None

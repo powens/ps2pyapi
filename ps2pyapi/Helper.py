@@ -1,9 +1,12 @@
 '''
 Created on Mar 20, 2013
 
+Version 0.0.4
+
 @author: Torokokill
 '''
 import pickle
+import json
 
 class Helper(object):
     @staticmethod
@@ -30,10 +33,23 @@ class Helper(object):
         return cache[lookupId] 
     
     @staticmethod
-    def getWeaponNameById(weaponid, api):
-        return Helper._getCache(api, "weaponNameCache", weaponid, "item", "c:show=name.en", ["item_list", 0, "name", "en"])
+    def getWeaponNameById(weaponid, api, language="en"):
+        return Helper._getCache(api, "weaponNameCache", weaponid, "item", "c:show=name." + language, ["item_list", 0, "name", language])
         
     @staticmethod
-    def getVehicleNameById(vehicleid, api):
-        return Helper._getCache(api, "vehicleNameCache", vehicleid, "vehicle", "c:show=name.en", ["vehicle_list", 0, "name", "en"])
+    def getVehicleNameById(vehicleid, api, language="en"):
+        return Helper._getCache(api, "vehicleNameCache", vehicleid, "vehicle", "c:show=name." + language, ["vehicle_list", 0, "name", language])
     
+    @staticmethod
+    def cacheTextQueryToFile(filename, textQuery):
+        with open(filename, "wb+") as f:
+            pickle.dump(textQuery, f)
+    
+    @staticmethod
+    def loadTextQueryFromFile(filename):
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+        
+    @staticmethod
+    def printTextQuery(textQuery):
+        print(json.dumps(textQuery.json, sort_keys=True, indent=4, separators=(',', ': ')))

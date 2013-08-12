@@ -47,6 +47,13 @@ TODO
 
 Version History
 ---------------
+0.0.4:
+*   Added TextQuery.getChildIfExists() lazy method: Returns the child if it exists, None if it does not.
+*   Added TextQuery.findChildWithField() method: Searches all immediate child objects for a child object with a fieldName equal to fieldValue. If it finds one, it returns that immediate child object, wrapped in a TextQuery object.
+*   Added a language parameter to Helper.getWeaponNameById() and Helper.getVehicleNameById(), defaults to English
+*   Added Helper.cacheTextQueryToFile(), Helper.loadTextQueryFromFile() and Helper.printTextQuery() methods
+*   Fixed a bug when performing a query with modifiers in an array.
+
 0.0.3:
 *   Updated the default namespace to ps2:v1
 *   Added some better query error handling inside of TextQuery.
